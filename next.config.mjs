@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  allowedDevOrigins: ["battery-trace-refined.ngrok-free.dev"],
   turbopack: {
     rules: {
       "*.css": {
