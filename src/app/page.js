@@ -1,12 +1,25 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("iron_admin");
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-  if (session?.value) {
-    redirect("/dashboard");
-  }
-  redirect("/login");
+export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Browser me cookie check karo
+    const hasSession = document.cookie.includes("iron_admin=");
+    if (hasSession) {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  // Loading state (jab tak redirect nahi hota)
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-crimson border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 }
