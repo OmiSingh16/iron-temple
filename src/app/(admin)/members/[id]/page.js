@@ -1,55 +1,75 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getSupabaseServer } from "@/lib/supabase/server";
-import { ArrowLeft, Phone, Calendar, User, CreditCard } from "lucide-react";
+import { ArrowLeft, Phone, Calendar, User, CreditCard, MessageCircle } from "lucide-react";
 import DeactivateButton from "./deactivate-button";
 import AssignMembershipButton from "./assign-membership-button";
+import RenewMembershipButton from "./renew-membership-button";
+import CollectPaymentButton from "./collect-payment-button";
+import MemberProfileSkeleton from "@/components/shared/member-profile-skeleton";
 
-export default async function MemberDetailPage({ params }) {
-  const resolvedParams = await params;
-  const supabase = getSupabaseServer();
+export default function MemberDetailPage() {
+  const params = useParams();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch member
-  const { data: member, error } = await supabase
-    .from("members")
-    .select("*")
-    .eq("id", resolvedParams.id)
-    .single();
+  const fetchData = async () => {
+  try {
+    const res = await fetch(`/api/member-detail?id=${params.id}`);
+    if (res.ok) {
+      const result = await res.json();
+      setData(result);
+    } else {
+      setError("Member not found");
+    }
+  } catch (err) {
+    setError("Network error");
+  }
+  setLoading(false);
+};
 
-  if (error || !member) notFound();
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch(`/api/member-detail?id=${params.id}`);
+        if (res.ok) {
+          const result = await res.json();
+          setData(result);
+        } else {
+          setError("Member not found");
+        }
+      } catch (err) {
+        setError("Network error");
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, [params.id]);
 
-  // Fetch active membership
-  const { data: memberships } = await supabase
-    .from("memberships")
-    .select("*, membership_plans(plan_name, duration_months)")
-    .eq("member_id", member.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1);
+  if (loading) return <MemberProfileSkeleton />;
+  if (error || !data) return <div className="p-4 text-crimson">{error || "Member not found"}</div>;
 
-  const activeMembership = memberships?.[0] || null;
+  const { member, memberships, totalAmount, totalPaid, totalDue, telegram, plans } = data;
+  
+  // Latest membership (agar hai to)
+  const activeMembership = memberships && memberships.length > 0 ? memberships[0] : null;
 
-  // Fetch plans for the dropdown
-  const { data: plans } = await supabase
-    .from("membership_plans")
-    .select("*")
-    .eq("is_active", true)
-    .order("duration_months", { ascending: true });
-
+  // Joined Date
   const joinedDate = new Date(member.created_at).toLocaleDateString("en-IN", {
     day: "numeric", month: "short", year: "numeric"
   });
 
-  // Calculate days left
+  // Days Left (Latest membership ke hisaab se)
   let daysLeft = 0;
-  let isExpired = false;
   if (activeMembership) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiry = new Date(activeMembership.expiry_date);
     expiry.setHours(0, 0, 0, 0);
     daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    isExpired = daysLeft < 0;
   }
 
   return (
@@ -90,26 +110,18 @@ export default async function MemberDetailPage({ params }) {
             <CreditCard size={18} strokeWidth={1.75} />
             <p className="eyebrow">Membership</p>
           </div>
-          {activeMembership && (
-            <span className={`flex items-center gap-1.5 text-xs font-semibold ${isExpired ? 'text-ink' : 'text-ink'}`}>
-              <span className={`w-2 h-2 rounded-full ${isExpired ? 'bg-crimson' : 'bg-white'}`} />
-              {isExpired ? 'Expired' : 'Active'}
-            </span>
-          )}
         </div>
 
         {activeMembership ? (
           <div>
             <div className="flex items-baseline gap-3 mb-3">
-              <div className={`disp text-5xl ${isExpired ? 'text-crimson' : 'text-ink'}`}>
-                {isExpired ? '0' : daysLeft}
-              </div>
+              <div className="disp text-5xl text-crimson">{daysLeft}</div>
               <div>
                 <p className="text-ink-muted text-sm">days left</p>
                 <p className="text-ink text-sm">{activeMembership.membership_plans.plan_name}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm pt-3 border-t border-line">
+            <div className="grid grid-cols-2 gap-3 text-sm pt-3 border-t border-line mb-4">
               <div>
                 <p className="text-ink-muted text-xs mb-1">Started</p>
                 <p className="text-ink num">
@@ -123,11 +135,47 @@ export default async function MemberDetailPage({ params }) {
                 </p>
               </div>
             </div>
+            
+            {/* Total Fees, Paid, Due */}
+            <div className="bg-black/40 rounded-[10px] p-4 flex justify-between items-center mb-4">
+               <div>
+                  <p className="text-xs text-ink-muted">Total Fees</p>
+                  <p className="text-sm text-ink num">₹{totalAmount.toLocaleString("en-IN")}</p>
+               </div>
+               <div>
+                  <p className="text-xs text-ink-muted">Paid</p>
+                  <p className="text-sm text-ink num">₹{totalPaid.toLocaleString("en-IN")}</p>
+               </div>
+               <div>
+                  <p className="text-xs text-ink-muted">Due</p>
+                  <p className={`text-lg font-bold num ${totalDue > 0 ? "text-crimson" : "text-white"}`}>
+                    ₹{totalDue.toLocaleString("en-IN")}
+                  </p>
+               </div>
+            </div>
+
+            {/* Buttons: Collect Payment + Renew */}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <CollectPaymentButton
+                  memberId={member.id}
+                  dueAmount={totalDue}
+                  onSuccess={fetchData}
+                />
+              </div>
+              <div className="flex-1">
+                <RenewMembershipButton
+                  memberId={member.id}
+                  plans={plans}
+                  currentExpiryDate={activeMembership.expiry_date}
+                />
+              </div>
+            </div>
           </div>
         ) : (
           <div>
             <p className="text-ink-muted text-sm mb-4">No active membership.</p>
-            <AssignMembershipButton memberId={member.id} plans={plans || []} />
+            <AssignMembershipButton memberId={member.id} plans={plans} />
           </div>
         )}
       </div>
@@ -160,10 +208,20 @@ export default async function MemberDetailPage({ params }) {
 
         <div className="bg-slate rounded-tile p-5">
           <div className="flex items-center gap-2 mb-2 text-ink-muted">
-            <User size={16} strokeWidth={1.75} />
+            <MessageCircle size={16} strokeWidth={1.75} />
             <p className="eyebrow">Telegram</p>
           </div>
-          <p className="text-ink-muted text-sm">Not linked yet</p>
+          {telegram ? (
+             <p className="text-ink text-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-white"></span>
+                Linked {telegram.telegram_username ? `(@${telegram.telegram_username})` : ""}
+             </p>
+          ) : (
+             <p className="text-ink-muted text-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-crimson"></span>
+                Not linked yet
+             </p>
+          )}
         </div>
       </div>
 

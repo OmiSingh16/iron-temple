@@ -3,6 +3,7 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
+import { getGymToday } from "../utils/date";
 
 export async function regenerateQR() {
   const supabase = getSupabaseServer();
@@ -20,7 +21,7 @@ export async function regenerateQR() {
 
 export async function markManualAttendance(memberId) {
   const supabase = getSupabaseServer();
-  const today = new Date().toISOString().split("T")[0];
+  const today =  getGymToday();
   
   // Check if member is active
   const { data: member } = await supabase.from("members").select("is_active").eq("id", memberId).single();

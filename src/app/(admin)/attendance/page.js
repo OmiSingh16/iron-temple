@@ -2,6 +2,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import QRDisplay from "@/components/admin/attendance/qr-display";
 import ManualAttendance from "@/components/admin/attendance/manual-attendance";
 import { Users, AlertTriangle } from "lucide-react";
+import { getGymToday } from "@/lib/utils/date";
 
 export default async function AttendancePage() {
   const supabase = getSupabaseServer();
@@ -11,7 +12,7 @@ export default async function AttendancePage() {
   const qrToken = settings?.qr_token || "setup-needed";
 
   // 2. Fetch Today's Attendance
-  const today = new Date().toISOString().split("T")[0];
+  const today =  getGymToday();
   const { data: todayAttendance } = await supabase
     .from("attendance")
     .select(`id, check_in_time, members (full_name, member_code)`)
@@ -37,14 +38,7 @@ export default async function AttendancePage() {
         <div className="space-y-4">
           <QRDisplay qrToken={qrToken} />
           
-          <div className="bg-slate rounded-tile p-5 border border-line">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="text-crimson shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-ink-muted">
-                This QR identifies the gym. Anyone with a photo of it can open check-in, so the system also checks the member's Telegram account and membership.
-              </p>
-            </div>
-          </div>
+        
         </div>
 
         {/* Manual & Today's List */}

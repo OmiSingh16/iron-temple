@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, Users, IdCard, QrCode, 
-  IndianRupee, Dumbbell, ChartColumn, Settings 
+  IndianRupee, Dumbbell, ChartColumn, Settings, LogOut
 } from "lucide-react";
+import { useTransition } from "react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -20,6 +21,15 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await fetch("/api/admin/logout", { method: "POST" });
+      router.push("/login");
+    });
+  };
 
   return (
     <aside className="hidden md:flex flex-col w-[232px] bg-black border-r border-slate sticky top-0 h-screen">
@@ -53,6 +63,18 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Logout Button at Bottom */}
+      <div className="px-4 py-4 border-t border-slate">
+        <button
+          onClick={handleLogout}
+          disabled={isPending}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-ink-muted hover:bg-slate hover:text-ink transition-colors disabled:opacity-50"
+        >
+          <LogOut size={20} strokeWidth={1.75} />
+          <span className="text-sm">{isPending ? "Logging out..." : "Logout"}</span>
+        </button>
+      </div>
     </aside>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getGymToday } from "@/lib/utils/date";
 
 // Telegram initData verify karo (Official HMAC procedure)
 function verifyTelegramInitData(initData, botToken) {
@@ -95,7 +96,7 @@ export async function POST(req) {
 
     // 4. Agar ready hai, attendance insert karo
     if (data.status === "ready") {
-      const today = new Date().toISOString().split("T")[0];
+      const today =  getGymToday();
       const { error: insertError } = await supabase.from("attendance").insert({
         member_id: data.member_id,
         attendance_date: today,

@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Lock, Eye, EyeOff } from "lucide-react"; // 👈 Eye/EyeOff import karo
 
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 Naya state
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,7 +24,6 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
-        // Success, dashboard pe bhej do
         router.push("/dashboard");
         router.refresh();
       } else {
@@ -41,7 +41,6 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-black">
       <div className="w-full max-w-[400px] bg-slate rounded-tile p-8">
         
-        {/* Wordmark */}
         <div className="mb-10 text-center">
           <h1 className="disp text-4xl text-ink">
             IRON <span className="text-crimson">TEMPLE</span>
@@ -59,13 +58,26 @@ export default function LoginPage() {
                 <Lock className="h-5 w-5 text-ink-faint" strokeWidth={1.75} />
               </div>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"} // 👈 Type toggle
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter admin password"
-                className="w-full h-12 pl-10 pr-4 bg-black border border-line-strong rounded-[10px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-crimson transition-colors"
+                className="w-full h-12 pl-10 pr-12 bg-black border border-line-strong rounded-[10px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-crimson transition-colors"
                 required
               />
+              {/* 👇 Eye Icon Button */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-muted hover:text-ink transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" strokeWidth={1.75} />
+                ) : (
+                  <Eye className="h-5 w-5" strokeWidth={1.75} />
+                )}
+              </button>
             </div>
           </div>
 

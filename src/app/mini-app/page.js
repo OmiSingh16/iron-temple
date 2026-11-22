@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { AlertTriangle, Send } from "lucide-react";
 
 export default function MiniAppHome() {
   const [status, setStatus] = useState("loading");
@@ -18,13 +20,11 @@ export default function MiniAppHome() {
       return;
     }
 
-    // URL se token padho
     const urlParams = new URLSearchParams(window.location.search);
     const qrToken = urlParams.get("tgWebAppStartParam") || urlParams.get("qr") || tg.initDataUnsafe?.start_param;
 
     const fetchData = async () => {
       try {
-        // Agar token hai to check-in karo
         if (qrToken) {
           const res = await fetch("/api/attendance/check-in", {
             method: "POST",
@@ -39,7 +39,7 @@ export default function MiniAppHome() {
             already_checked_in: "You've already checked in today. See you tomorrow! 💪",
             no_membership: "Your membership is expired. Please renew at the desk.",
             member_inactive: "Your account is inactive. Please contact the owner.",
-            unlinked: "Your Telegram is not linked. Please /start the bot first.",
+            unlinked: "You haven't registered your Telegram with the gym yet.",
             invalid_qr: "Invalid QR code. Please scan the gym's QR.",
             invalid_telegram: "Telegram verification failed.",
             error: "Something went wrong. Please try again.",
@@ -50,7 +50,6 @@ export default function MiniAppHome() {
           setMessage("Welcome! Please scan the gym QR to check in.");
         }
 
-        // Member data fetch karo (initData se)
         const user = tg.initDataUnsafe?.user;
         if (user) {
           const memberRes = await fetch(`/api/mini-app/member?telegram_id=${user.id}`);
@@ -60,7 +59,6 @@ export default function MiniAppHome() {
           }
         }
 
-        // Attendance history fetch karo
         const attRes = await fetch(`/api/mini-app/attendance?telegram_id=${tg.initDataUnsafe?.user?.id}`);
         if (attRes.ok) {
           const attData = await attRes.json();
@@ -88,9 +86,15 @@ export default function MiniAppHome() {
       );
     }
     if (status === "loading" || status === "no_token") {
-      return null; // Loading spinner alag se handle hoga
+      return null;
     }
-    // Error ke liye red cross
+    if (status === "unlinked") {
+      return (
+        <div className="w-12 h-12 rounded-full bg-crimson/20 flex items-center justify-center mx-auto mb-4">
+          <Send size={24} className="text-crimson" strokeWidth={2} />
+        </div>
+      );
+    }
     return (
       <div className="w-12 h-12 rounded-full bg-crimson flex items-center justify-center mx-auto mb-4">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
@@ -101,16 +105,40 @@ export default function MiniAppHome() {
     );
   };
 
+  // Special UI for "unlinked" status
+  if (status === "unlinked") {
+    return (
+      <div className="min-h-screen bg-black p-4 flex items-center justify-center">
+        <div className="bg-slate rounded-tile p-6 w-full text-center">
+          {renderIcon()}
+          <h2 className="disp text-3xl text-ink mb-2">REGISTER FIRST</h2>
+          <p className="text-ink-muted text-sm mb-6">{message}</p>
+          
+          <Link
+            href="https://t.me/irontemplegymbot"
+            target="_blank"
+            className="w-full h-12 flex items-center justify-center gap-2 bg-crimson hover:bg-crimson-hover text-white font-bold text-sm rounded-[10px] transition-colors"
+          >
+            <Send size={18} />
+            Open Telegram Bot
+          </Link>
+          
+          <p className="text-xs text-ink-muted mt-4">
+            After registering, scan the QR again to check in.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black p-4">
-      {/* Header */}
       <div className="text-center mb-6">
         <h1 className="disp text-4xl text-ink">
           IRON <span className="text-crimson">TEMPLE</span>
         </h1>
       </div>
 
-      {/* Check-in Status Card */}
       <div className="bg-slate rounded-tile p-6 mb-4 text-center">
         {renderIcon()}
         {status === "loading" && (
@@ -127,17 +155,15 @@ export default function MiniAppHome() {
             <p className="text-ink-muted text-sm">{message}</p>
           </>
         )}
-        {status !== "loading" && status !== "success" && status !== "already_checked_in" && (
+        {status !== "loading" && status !== "success" && status !== "already_checked_in" && status !== "unlinked" && (
           <>
-            <h2 className="disp text-3xl text-ink mb-2">
-              {status === "no_token" ? "WELCOME" : "ERROR"}
-            </h2>
+            <h2 className="disp text-3xl text-ink mb-2">ERROR</h2>
             <p className="text-ink-muted text-sm">{message}</p>
           </>
         )}
       </div>
 
-      {/* Member Info (agar mila to) */}
+      {/* Member Info */}
       {memberData && (
         <div className="bg-slate rounded-tile p-5 mb-4">
           <p className="eyebrow text-ink-muted mb-1">Member</p>
@@ -169,16 +195,10 @@ export default function MiniAppHome() {
             {attendance.slice(0, 5).map((att) => (
               <div key={att.id} className="flex justify-between text-sm">
                 <span className="text-ink">
-                  {new Date(att.attendance_date).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                  })}
+                  {new Date(att.attendance_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                 </span>
                 <span className="text-ink-muted num">
-                  {new Date(att.check_in_time).toLocaleTimeString("en-IN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {new Date(att.check_in_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
             ))}

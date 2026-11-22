@@ -21,7 +21,7 @@ export default function NewPaymentPage() {
   
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDate, setPaymentDate] = useState(getGymToday());
   const [notes, setNotes] = useState("");
 
   // Search members

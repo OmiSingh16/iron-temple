@@ -1,41 +1,30 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabase/server";
-import { Plus, IndianRupee } from "lucide-react";
-import { connection } from "next/server";
+import { Plus, IndianRupee, AlertCircle } from "lucide-react";
+import PaymentsSkeleton from "@/components/shared/payments-skeleton";
 
-export default async function PaymentsPage() {
+export default function PaymentsPage() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("recent"); // "recent" ya "due"
 
-  await connection(); 
-  const supabase = getSupabaseServer();
-  
-  // Aaj ki date nikalte hain (gym timezone ke hisaab se)
-  const today = new Date().toISOString().split("T")[0];
-  const startOfMonth = today.substring(0, 7) + "-01";
+  useEffect(() => {
+    async function fetchData() {
+      const res = await fetch("/api/payments");
+      if (res.ok) {
+        const result = await res.json();
+        setData(result);
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
-  // 1. Aaj ka collection
-  const { data: todayPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .eq("payment_date", today);
-
-  // 2. Is mahine ka collection
-  const { data: monthPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .gte("payment_date", startOfMonth);
-
-  // 3. Recent Payments (last 20)
-  const { data: recentPayments } = await supabase
-    .from("payments")
-    .select(`
-      id, amount, payment_method, payment_date,
-      members (full_name, member_code)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  const todayTotal = todayPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-  const monthTotal = monthPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+  if (loading) {
+    return <PaymentsSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -57,38 +46,57 @@ export default async function PaymentsPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <div className="bg-slate rounded-tile p-5">
-          <p className="eyebrow mb-2">Today</p>
+          <p className="eyebrow mb-2">Today Collection</p>
           <div className="disp text-4xl md:text-5xl text-ink num">
-            ₹{todayTotal.toLocaleString("en-IN")}
+            ₹{data?.todayTotal?.toLocaleString("en-IN") || 0}
           </div>
         </div>
-        <div className="bg-slate rounded-tile p-5">
-          <p className="eyebrow mb-2">This Month</p>
-          <div className="disp text-4xl md:text-5xl text-ink num">
-            ₹{monthTotal.toLocaleString("en-IN")}
+        <div className="bg-slate rounded-tile p-5 border border-crimson/30">
+          <p className="eyebrow mb-2 text-crimson">Total Pending Due</p>
+          <div className="disp text-4xl md:text-5xl text-crimson num">
+            ₹{data?.totalPending?.toLocaleString("en-IN") || 0}
           </div>
         </div>
       </div>
 
-      {/* Recent Payments List */}
-      <div>
-        <h2 className="disp text-2xl text-ink mb-3">RECENT PAYMENTS</h2>
-        
-        {!recentPayments || recentPayments.length === 0 ? (
-          <div className="bg-slate rounded-tile p-12 text-center">
-            <p className="text-ink-muted mb-4">No payments recorded yet.</p>
-            <Link href="/payments/new" className="inline-block h-10 px-6 bg-crimson text-white font-bold text-sm rounded-[10px] leading-10">
-              Record first payment
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-slate rounded-tile overflow-hidden">
-            {recentPayments.map((payment, idx) => (
+      
+            {/* Tabs */}
+      <div className="flex gap-2 p-1 bg-black border border-line rounded-[10px] w-fit">
+        <button
+          onClick={() => setActiveTab("recent")}
+          className={`px-4 py-2 text-sm font-semibold rounded-[8px] transition-colors ${
+            activeTab === "recent"
+              ? "bg-slate text-ink border border-crimson"
+              : "text-ink-muted hover:text-ink hover:bg-slate/50"
+          }`}
+        >
+          Recent Payments
+        </button>
+        <button
+          onClick={() => setActiveTab("due")}
+          className={`px-4 py-2 text-sm font-semibold rounded-[8px] transition-colors ${
+            activeTab === "due"
+              ? "bg-slate text-ink border border-crimson"
+              : "text-ink-muted hover:text-ink hover:bg-slate/50"
+          }`}
+        >
+          Pending Dues ({data?.pendingDues?.length || 0})
+        </button>
+      </div>
+
+      {/* Content based on Tab */}
+      <div className="bg-slate rounded-tile overflow-hidden">
+        {activeTab === "recent" ? (
+          // Recent Payments List
+          !data?.recentPayments || data.recentPayments.length === 0 ? (
+            <div className="p-8 text-center text-ink-muted">No payments recorded yet.</div>
+          ) : (
+            data.recentPayments.map((payment, idx) => (
               <Link
                 key={payment.id}
                 href={`/receipt/${payment.id}`}
                 className={`block p-4 hover:bg-line transition-colors ${
-                  idx !== recentPayments.length - 1 ? "border-b border-line" : ""
+                  idx !== data.recentPayments.length - 1 ? "border-b border-line" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -96,9 +104,7 @@ export default async function PaymentsPage() {
                     <IndianRupee size={16} className="text-ink-muted" strokeWidth={2} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-ink truncate">
-                      {payment.members.full_name}
-                    </p>
+                    <p className="font-semibold text-ink truncate">{payment.members.full_name}</p>
                     <p className="text-sm text-ink-muted num">
                       {payment.members.member_code} · {payment.payment_method.toUpperCase()} ·{" "}
                       {new Date(payment.payment_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
@@ -109,8 +115,38 @@ export default async function PaymentsPage() {
                   </div>
                 </div>
               </Link>
-            ))}
-          </div>
+            ))
+          )
+        ) : (
+          // Pending Dues List
+          !data?.pendingDues || data.pendingDues.length === 0 ? (
+            <div className="p-8 text-center text-ink-muted">No pending dues. All clear!</div>
+          ) : (
+            data.pendingDues.map((due, idx) => (
+              <Link
+                key={due.id}
+                href={`/members/${due.member_id}`}
+                className={`block p-4 hover:bg-line transition-colors ${
+                  idx !== data.pendingDues.length - 1 ? "border-b border-line" : ""
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-crimson/20 flex items-center justify-center shrink-0">
+                    <AlertCircle size={16} className="text-crimson" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-ink truncate">{due.member_name}</p>
+                    <p className="text-sm text-ink-muted num">
+                      {due.member_code} · Total: ₹{due.total_amount.toLocaleString("en-IN")} · Paid: ₹{due.paid.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="disp text-xl text-crimson num text-right shrink-0">
+                    ₹{due.balance.toLocaleString("en-IN")}
+                  </div>
+                </div>
+              </Link>
+            ))
+          )
         )}
       </div>
     </div>

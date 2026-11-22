@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { assignMembership } from "@/lib/services/memberships";
+import { getGymToday } from "@/lib/utils/date";
 
 export default function AssignMembershipButton({ memberId, plans }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id || "");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(getGymToday());
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 

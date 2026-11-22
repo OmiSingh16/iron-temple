@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getGymToday } from "@/lib/utils/date";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -31,7 +32,7 @@ export async function GET(req) {
     .select("*, membership_plans(plan_name)")
     .eq("member_id", member.id)
     .eq("status", "active")
-    .gte("expiry_date", new Date().toISOString().split("T")[0])
+    .gte("expiry_date", getGymToday())
     .order("created_at", { ascending: false })
     .limit(1);
 
