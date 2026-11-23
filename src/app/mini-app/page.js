@@ -169,6 +169,27 @@ export default function MiniAppHome() {
           <p className="eyebrow text-ink-muted mb-1">Member</p>
           <p className="text-ink font-semibold">{memberData.full_name}</p>
           <p className="text-ink-muted text-xs num">{memberData.member_code}</p>
+
+          {memberData?.todaysWorkout && (
+  <div className="bg-slate rounded-tile p-5 mb-4">
+    <p className="eyebrow text-crimson mb-2">Today's Workout</p>
+    <h3 className="disp text-2xl text-ink mb-1">{memberData.todaysWorkout.plan_name}</h3>
+    <p className="text-xs text-ink-muted mb-4">{memberData.todaysWorkout.exercises.length} exercises for {memberData.todaysWorkout.day}</p>
+    <div className="space-y-2">
+      {memberData.todaysWorkout.exercises.map((ex, i) => (
+        <div key={i} className="flex justify-between items-start py-2 border-b border-line last:border-0">
+          <div>
+            <p className="text-sm font-semibold text-ink">{ex.exercise_name}</p>
+            {ex.notes && <p className="text-xs text-ink-muted mt-0.5">{ex.notes}</p>}
+          </div>
+          <p className="text-xs text-ink-muted num whitespace-nowrap ml-2">
+            {ex.sets} × {ex.reps > 0 ? ex.reps : ex.duration}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
           
           {memberData.membership && (
             <div className="mt-3 pt-3 border-t border-line">

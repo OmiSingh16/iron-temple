@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Phone, Calendar, User, CreditCard, MessageCircle } from "lucide-react";
+import { ArrowLeft, Phone, Calendar, User, CreditCard, MessageCircle, Dumbbell } from "lucide-react";
 import DeactivateButton from "./deactivate-button";
 import AssignMembershipButton from "./assign-membership-button";
 import RenewMembershipButton from "./renew-membership-button";
@@ -179,6 +179,24 @@ export default function MemberDetailPage() {
           </div>
         )}
       </div>
+
+
+      {/* 👇 YAHAN ADD KARO (Workout Plan Card) */}
+      {data.workoutPlan && (
+        <div className="bg-slate rounded-tile p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-ink-muted">
+              <Dumbbell size={18} strokeWidth={1.75} />
+              <p className="eyebrow">Workout Plan</p>
+            </div>
+            <Link href={`/plans/${data.workoutPlan.template_id}`} className="text-xs text-crimson font-semibold hover:underline">
+              Edit
+            </Link>
+          </div>
+          <p className="disp text-2xl text-ink mb-1">{data.workoutPlan.workout_templates.name}</p>
+          <p className="text-xs text-ink-muted uppercase">{data.workoutPlan.workout_templates.level}</p>
+        </div>
+      )}
 
       {/* Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -47,6 +47,33 @@ export async function GET(req) {
     daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
   }
 
+  // Workout plan assignment
+const { data: assignment } = await supabase
+  .from("member_plan_assignments")
+  .select("template_id, workout_templates(id, name, level)")
+  .eq("member_id", member.id)
+  .maybeSingle();
+
+let todaysWorkout = null;
+if (assignment) {
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const { data: exercises } = await supabase
+    .from("workout_plan_items")
+    .select("*")
+    .eq("template_id", assignment.template_id)
+    .eq("day_of_week", today)
+    .order("created_at");
+
+  if (exercises && exercises.length > 0) {
+    todaysWorkout = {
+      plan_name: assignment.workout_templates.name,
+      day: today,
+      exercises,
+    };
+  }
+}
+
+
   return NextResponse.json({
     ...member,
     membership: activeMembership
@@ -56,5 +83,7 @@ export async function GET(req) {
           days_left: daysLeft,
         }
       : null,
+      workoutPlan: assignment ? assignment.workout_templates : null,
+      todaysWorkout,
   });
 }

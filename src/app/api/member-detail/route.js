@@ -58,6 +58,13 @@ export async function GET(req) {
     .eq("is_active", true)
     .order("duration_months", { ascending: true });
 
+  // Template assign kya hai
+const { data: assignment } = await supabase
+  .from("member_plan_assignments")
+  .select("template_id, workout_templates(name, level)")
+  .eq("member_id", memberId)
+  .maybeSingle();  
+
   return NextResponse.json({
     member,
     memberships: memberships || [], // Saari memberships
@@ -66,5 +73,6 @@ export async function GET(req) {
     totalDue,
     telegram,
     plans: plans || [],
+    workoutPlan: assignment || null, 
   });
 }
