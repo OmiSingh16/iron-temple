@@ -168,6 +168,7 @@ export default function MemberDetailPage() {
                   memberId={member.id}
                   plans={plans}
                   currentExpiryDate={activeMembership.expiry_date}
+                  onSuccess={fetchData} 
                 />
               </div>
             </div>

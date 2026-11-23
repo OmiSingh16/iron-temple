@@ -56,7 +56,9 @@ const { data: assignment } = await supabase
 
 let todaysWorkout = null;
 if (assignment) {
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayStr = getGymToday();
+const todayDate = new Date(todayStr);
+const today = todayDate.toLocaleDateString("en-US", { weekday: "long" }); ;
   const { data: exercises } = await supabase
     .from("workout_plan_items")
     .select("*")

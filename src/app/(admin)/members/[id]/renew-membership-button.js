@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { renewMembership } from "@/lib/services/memberships";
 
-export default function RenewMembershipButton({ memberId, plans, currentExpiryDate }) {
+export default function RenewMembershipButton({ memberId, plans, currentExpiryDate, onSuccess }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id || "");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   const handleRenew = () => {
     if (!selectedPlan) return;
@@ -16,7 +14,7 @@ export default function RenewMembershipButton({ memberId, plans, currentExpiryDa
       const result = await renewMembership(memberId, selectedPlan, currentExpiryDate);
       if (result.success) {
         setIsOpen(false);
-        router.refresh();
+        if (onSuccess) onSuccess(); // 👈 Parent ko batao ki data refresh kare
       } else {
         alert(result.error);
       }
@@ -27,7 +25,7 @@ export default function RenewMembershipButton({ memberId, plans, currentExpiryDa
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="h-10 px-4 bg-crimson hover:bg-crimson-hover text-white font-bold text-sm rounded-[10px] transition-colors"
+        className="w-full h-10 px-4 bg-crimson hover:bg-crimson-hover text-white font-bold text-sm rounded-[10px] transition-colors"
       >
         Renew Membership
       </button>
@@ -36,7 +34,9 @@ export default function RenewMembershipButton({ memberId, plans, currentExpiryDa
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65">
           <div className="w-full max-w-[440px] bg-slate rounded-tile p-6">
             <h2 className="disp text-2xl text-ink mb-4 uppercase">Renew Membership</h2>
-            <p className="text-xs text-ink-muted mb-4">Naya plan {new Date(currentExpiryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ke agle din se shuru hoga.</p>
+            <p className="text-xs text-ink-muted mb-4">
+              Naya plan {new Date(currentExpiryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ke agle din se shuru hoga.
+            </p>
             
             <div className="space-y-4">
               <div>
